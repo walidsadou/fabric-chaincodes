@@ -24,4 +24,4 @@ var samples = `
         },
         "temperature": 123.456
     }
-}
+}`
