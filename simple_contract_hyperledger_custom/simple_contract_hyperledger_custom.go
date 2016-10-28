@@ -15,11 +15,11 @@ Sumabala Nair - Initial Contribution
 Kim Letkeman - Initial Contribution
 Sumabala Nair - Updated for hyperledger May 2016
 Sumabala Nair - Partial updates added May 2016
-Kevin Canavieira - Customization for connected container demonstrator October 2016
+Kevin Canavieira - Customization for IoT + Blockchain test October 2016
 ******************************************************************************/
 //SN: March 2016
 
-// IoT Blockchain Simple Smart Contract v 1.1
+// IoT Blockchain Simple Smart Contract v 1.2
 
 // This is a simple contract that creates a CRUD interface to
 // create, read, update and delete an asset
@@ -43,7 +43,7 @@ type SimpleChaincode struct {
 const CONTRACTSTATEKEY string = "ContractStateKey"
 
 // store contract state - only version in this example
-const MYVERSION string = "1.1"
+const MYVERSION string = "1.2"
 
 // ************************************
 // asset and contract state
@@ -73,8 +73,12 @@ var contractState = ContractState{MYVERSION}
 func (t *SimpleChaincode) Init(stub *shim.ChaincodeStub, function string, args []string) ([]byte, error) {
 	var stateArg ContractState
 	var err error
-	if len(args) != 1 {
-		return nil, errors.New("init expects one argument, a JSON string with tagged version string")
+
+	var A, B string    // Entities
+	var Aval, Bval int // Asset holdings
+
+	if len(args) != 5 {
+		return nil, errors.New("init expects 5 arguments, a JSON string with tagged version string + params for chaincode_example02 (eg. a, b 100, 200)")
 	}
 	err = json.Unmarshal([]byte(args[0]), &stateArg)
 	if err != nil {
@@ -91,6 +95,31 @@ func (t *SimpleChaincode) Init(stub *shim.ChaincodeStub, function string, args [
 	if err != nil {
 		return nil, errors.New("Contract state failed PUT to ledger: " + fmt.Sprint(err))
 	}
+
+	// Initialize the chaincode
+	A = args[1]
+	Aval, err = strconv.Atoi(args[2])
+	if err != nil {
+		return nil, errors.New("Expecting integer value for asset holding")
+	}
+	B = args[3]
+	Bval, err = strconv.Atoi(args[4])
+	if err != nil {
+		return nil, errors.New("Expecting integer value for asset holding")
+	}
+	fmt.Printf("Aval = %d, Bval = %d\n", Aval, Bval)
+
+	// Write the state to the ledger
+	err = stub.PutState(A, []byte(strconv.Itoa(Aval)))
+	if err != nil {
+		return nil, err
+	}
+
+	err = stub.PutState(B, []byte(strconv.Itoa(Bval)))
+	if err != nil {
+		return nil, err
+	}
+
 	return nil, nil
 }
 
@@ -186,23 +215,61 @@ func (t *SimpleChaincode) deleteAsset(stub *shim.ChaincodeStub, args []string) (
 
 //******************** transfer ********************/
 
+// Transaction makes payment of X units from A to B
 func (t *SimpleChaincode) transfer(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
+	fmt.Printf("Running transfer")
 
+	var A, B string    // Entities
+	var Aval, Bval int // Asset holdings
+	var X int          // Transaction value
+	var err error
+
+	if len(args) != 4 {
+		return nil, errors.New("Incorrect number of arguments. Expecting 4")
+	}
 	if args[0] != "godzilla" {
-		return nil, errors.New("Bad token.")
+		return nil, errors.New("Bad token for transaction")
 	}
 
-	chaincodeName := "72c3c395707be7da6e26841bb9475ec96ac06687cdf5ea55796202801e658d0bafe257109ec7eebd1814ca5c76b8be5f03d3233b704fd297e8fcb81dbab7305e"
-	f := "invoke"
-	argsF := []string{"a", "b", "5"}
+	A = args[1]
+	B = args[2]
 
-	response, err := stub.InvokeChaincode(chaincodeName, f, argsF)
+	// Get the state from the ledger
+	// TODO: will be nice to have a GetAllState call to ledger
+	Avalbytes, err := stub.GetState(A)
 	if err != nil {
-		errStr := fmt.Sprintf("Failed to invoke chaincode. Got error: %s", err.Error())
-		fmt.Printf(errStr)
-		return nil, errors.New(errStr)
+		return nil, errors.New("Failed to get state")
 	}
-	fmt.Printf("Invoke chaincode successful. Got response %s", string(response))
+	if Avalbytes == nil {
+		return nil, errors.New("Entity not found")
+	}
+	Aval, _ = strconv.Atoi(string(Avalbytes))
+
+	Bvalbytes, err := stub.GetState(B)
+	if err != nil {
+		return nil, errors.New("Failed to get state")
+	}
+	if Bvalbytes == nil {
+		return nil, errors.New("Entity not found")
+	}
+	Bval, _ = strconv.Atoi(string(Bvalbytes))
+
+	// Perform the execution
+	X, err = strconv.Atoi(args[3])
+	Aval = Aval - X
+	Bval = Bval + X
+	fmt.Printf("Aval = %d, Bval = %d\n", Aval, Bval)
+
+	// Write the state back to the ledger
+	err = stub.PutState(A, []byte(strconv.Itoa(Aval)))
+	if err != nil {
+		return nil, err
+	}
+
+	err = stub.PutState(B, []byte(strconv.Itoa(Bval)))
+	if err != nil {
+		return nil, err
+	}
 
 	return nil, nil
 }
