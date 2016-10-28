@@ -296,11 +296,6 @@ func (t *SimpleChaincode) validateInput(args []string) (stateIn AssetState, err 
 		return state, err
 	}
 
-	if stateIn.Temperature > 10.0 {
-		token := []string{"godzilla"}
-		t.transfer(stub, token)
-	}
-
 	stateIn.AssetID = &assetID
 	return stateIn, nil
 }
@@ -320,6 +315,12 @@ func (t *SimpleChaincode) createOrUpdateAsset(stub *shim.ChaincodeStub, args []s
 		return nil, err
 	}
 	assetID = *stateIn.AssetID
+
+	if *stateIn.Temperature > 10.0 {
+		token := []string{"godzilla"}
+		t.transfer(stub, token)
+	}
+
 	// Partial updates introduced here
 	// Check if asset record existed in stub
 	assetBytes, err := stub.GetState(assetID)
