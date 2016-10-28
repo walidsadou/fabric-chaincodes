@@ -296,7 +296,7 @@ func (t *SimpleChaincode) validateInput(args []string) (stateIn AssetState, err 
 		return state, err
 	}
 
-	if stateIn.Temperature > 10 {
+	if stateIn.Temperature > 10.0 {
 		token := []string{"godzilla"}
 		t.transfer(stub, token)
 	}
