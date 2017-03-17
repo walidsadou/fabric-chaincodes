@@ -62,7 +62,6 @@ type AssetState struct {
 	Location    *Geolocation `json:"location,omitempty"`    // current asset location
 	Temperature *float64     `json:"temperature,omitempty"` // asset temp
 	Carrier     *string      `json:"carrier,omitempty"`     // the name of the carrier
-	Payment     *float64     `json:"payment,omitempty"`     // number of total payments
 }
 
 var contractState = ContractState{MYVERSION}
