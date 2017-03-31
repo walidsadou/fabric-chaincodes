@@ -178,10 +178,6 @@ func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function strin
 	} else if function == "readAssetSchemas" {
 		// returns selected sample objects
 		return t.readAssetSchemas(stub, args)
-	} else if function == "readAssetObjectModel" {
-		return t.readAssetObjectModel(stub, args)
-	} else if function == "readContractObjectModel" {
-		return t.readContractObjectModel(stub, args)
 	} else if function == "readContractState" {
 		return t.readContractState(stub, args)
 	}
@@ -319,29 +315,29 @@ func (t *SimpleChaincode) readContractState(stub shim.ChaincodeStubInterface, ar
 
 //*************readContractObjectModel*****************/
 
-func (t *SimpleChaincode) readContractObjectModel(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
-	var state = ContractState{}
+// func (t *SimpleChaincode) readContractObjectModel(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+// 	var state = ContractState{}
 
-	// Marshal and return
-	stateJSON, err := json.Marshal(state)
-	if err != nil {
-		return nil, err
-	}
-	return stateJSON, nil
-}
+// 	// Marshal and return
+// 	stateJSON, err := json.Marshal(state)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return stateJSON, nil
+// }
 
 //*************readAssetObjectModel*****************/
 
-func (t *SimpleChaincode) readAssetObjectModel(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
-	var state AssetState = AssetState{}
+// func (t *SimpleChaincode) readAssetObjectModel(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+// 	var state AssetState = AssetState{}
 
-	// Marshal and return
-	stateJSON, err := json.Marshal(state)
-	if err != nil {
-		return nil, err
-	}
-	return stateJSON, nil
-}
+// 	// Marshal and return
+// 	stateJSON, err := json.Marshal(state)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return stateJSON, nil
+// }
 
 //*************readAssetSamples*******************/
 
