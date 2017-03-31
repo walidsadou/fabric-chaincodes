@@ -82,7 +82,7 @@ type Event struct {
 }
 
 type TradeState struct {
-	TradeID *string `json:"tradeID"`
+	TradeID string `json:"tradeID"`
 }
 
 // ************************************
@@ -180,6 +180,8 @@ func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function strin
 		return t.readAssetSchemas(stub, args)
 	} else if function == "readAssetObjectModel" {
 		return t.readAssetObjectModel(stub, args)
+	} else if function == "readContractObjectModel" {
+		return t.readContractObjectModel(stub, args)
 	} else if function == "readContractState" {
 		return t.readContractState(stub, args)
 	}
