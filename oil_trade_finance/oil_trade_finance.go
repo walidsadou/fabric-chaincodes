@@ -73,7 +73,7 @@ type AssetState struct {
 	maxTemperature *float64     `json:"maxTemperature,omitempty"` // asset temp
 	maxHumidity    *float64     `json:"maxHumidity,omitempty"`    // asset humidity
 	Carrier        *string      `json:"carrier,omitempty"`        // the name of the carrier
-	Event          *Event       `json:"event,omitempty"`
+	//Event          *Event       `json:"event,omitempty"`
 }
 
 type Event struct {

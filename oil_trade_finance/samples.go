@@ -9,11 +9,12 @@ var samples = `
             "latitude": 123.456,
             "longitude": 123.456
         },
-        "temperature": 123.456
+        "maxTemperature": 123.456,
+        "maxHumidity": 123.456
     },
     "initEvent": {
-        "nickname": "SIMPLE",
-        "version": "The ID of a managed asset. The resource focal point for a smart contract."
+        "version": "The ID of a managed asset. The resource focal point for a smart contract.",
+        "tradeID": "The ID of the trade associated to the contract"
     },
     "state": {
         "assetID": "The ID of a managed asset. The resource focal point for a smart contract.",
@@ -22,6 +23,7 @@ var samples = `
             "latitude": 123.456,
             "longitude": 123.456
         },
-        "temperature": 123.456
+        "maxTemperature": 123.456,
+        "maxHumidity": 123.456
     }
 }`
