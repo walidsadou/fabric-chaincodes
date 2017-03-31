@@ -322,10 +322,14 @@ var schemas = `
                     },
                     "type": "object"
                 },
-                "temperature": {
-                    "description": "Temperature of the asset in CELSIUS.",
+                "maxTemperature": {
+                    "description": "Maximum measured temperature (since last event) of the asset in CELSIUS.",
                     "type": "number"
-                }
+                },
+                "maxHumidity": {
+                    "description": "Maximum measured humidity (since last event) of the asset in PERCENT.",
+                    "type": "number"
+                },
             },
             "required": [
                 "assetID"
@@ -335,18 +339,18 @@ var schemas = `
         "initEvent": {
             "description": "event sent to init on deployment",
             "properties": {
-                "nickname": {
-                    "default": "SIMPLE",
-                    "description": "The nickname of the current contract",
-                    "type": "string"
-                },
                 "version": {
                     "description": "The ID of a managed asset. The resource focal point for a smart contract.",
                     "type": "string"
-                }
+                },
+                "tradeID": {
+                    "description": "The id of the trade",
+                    "type": "string"
+                },
             },
             "required": [
-                "version"
+                "version",
+                "tradeID"
             ],
             "type": "object"
         },
@@ -373,10 +377,14 @@ var schemas = `
                     },
                     "type": "object"
                 },
-                "temperature": {
-                    "description": "Temperature of the asset in CELSIUS.",
+                "maxTemperature": {
+                    "description": "Maximum measured temperature (since last event) of the asset in CELSIUS.",
                     "type": "number"
-                }
+                },
+                "maxHumidity": {
+                    "description": "Maximum measured humidity (since last event) of the asset in PERCENT.",
+                    "type": "number"
+                },
             },
             "type": "object"
         }
