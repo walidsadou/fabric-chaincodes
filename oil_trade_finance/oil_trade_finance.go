@@ -82,7 +82,7 @@ type Event struct {
 }
 
 type TradeState struct {
-	TradeID *string `json:"tradeID,omitempty"`
+	TradeID *string `json:"tradeID"`
 }
 
 // ************************************
@@ -318,7 +318,7 @@ func (t *SimpleChaincode) readContractState(stub shim.ChaincodeStubInterface, ar
 //*************readContractObjectModel*****************/
 
 func (t *SimpleChaincode) readContractObjectModel(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
-	var contractState = ContractState{MYVERSION, DEFAULTSTATUS}
+	var state = ContractState{}
 
 	// Marshal and return
 	stateJSON, err := json.Marshal(state)
