@@ -57,7 +57,7 @@ const TRADEID string = "0476219"
 // ContractState holds the contract version
 type ContractState struct {
 	Version string `json:"version"`
-	Status  bool   `json:"status"`
+	Status  uint8  `json:"status"`
 }
 
 // Geolocation stores lat and long
@@ -319,6 +319,19 @@ func (t *SimpleChaincode) readContractState(stub shim.ChaincodeStubInterface, ar
 
 func (t *SimpleChaincode) readContractObjectModel(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	var contractState = ContractState{MYVERSION, DEFAULTSTATUS}
+
+	// Marshal and return
+	stateJSON, err := json.Marshal(state)
+	if err != nil {
+		return nil, err
+	}
+	return stateJSON, nil
+}
+
+//*************readAssetObjectModel*****************/
+
+func (t *SimpleChaincode) readAssetObjectModel(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	var state AssetState = AssetState{}
 
 	// Marshal and return
 	stateJSON, err := json.Marshal(state)
