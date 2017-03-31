@@ -19,6 +19,8 @@ Sumabala Nair - Partial updates added May 2016
 // This is a simple contract that creates a CRUD interface to
 // create, read, update and delete an asset
 
+//go:generate go run scripts/generate_go_schema.go
+
 package main
 
 import (
@@ -27,7 +29,6 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
-	"time"
 
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 )
@@ -39,8 +40,9 @@ type SimpleChaincode struct {
 // CONTRACTSTATEKEY is used to store contract state into world state
 const CONTRACTSTATEKEY string = "ContractStateKey"
 
-// MYVERSION must use this to deploy contract
+// MYVERSION and DEFAULTSTATUS must be used to deploy the contract
 const MYVERSION string = "1.0"
+const DEFAULTSTATUS uint8 = 0
 
 // TRADESTATEKEY is used to store trade state into world state
 const TRADESTATEKEY string = "TradeStateKey"
@@ -83,9 +85,6 @@ type TradeState struct {
 	TradeID *string `json:"tradeID,omitempty"`
 }
 
-var contractState = ContractState{MYVERSION, true}
-var tradeState = Trade{TRADEID}
-
 // ************************************
 // deploy callback mode
 // ************************************
@@ -108,6 +107,9 @@ func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface, function string
 	if contractStateArg.Version != MYVERSION {
 		return nil, errors.New("Contract version " + MYVERSION + " must match version argument: " + contractStateArg.Version)
 	}
+	// set status to default (0)
+	contractStateArg.Status = DEFAULTSTATUS
+
 	contractStateJSON, err := json.Marshal(contractStateArg)
 	if err != nil {
 		return nil, errors.New("Marshal failed for contract state" + fmt.Sprint(err))
@@ -133,7 +135,7 @@ func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface, function string
 	if err != nil {
 		return nil, errors.New("Trade state failed PUT to ledger: " + fmt.Sprint(err))
 	}
-	 
+
 	return nil, nil
 }
 
@@ -167,21 +169,21 @@ func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function strin
 	if function == "readAsset" {
 		// gets the state for an assetID as a JSON struct
 		return t.readAsset(stub, args)
-	} else if function == "readContract" {
-		// get contract state as as JSON struct
-		return t.readContract(stub, args)
-	} else if function == "readTrade" {
-		// get trade id
-		return t.readTrade(stub, args)
-	} else if function == "readAssetObjectModel" {
-		return t.readAssetObjectModel(stub, args)
+	} else if function == "readTradeState" {
+		// get trade state as a JSON struct
+		return t.readTradeState(stub, args)
 	} else if function == "readAssetSamples" {
 		// returns selected sample objects
 		return t.readAssetSamples(stub, args)
 	} else if function == "readAssetSchemas" {
 		// returns selected sample objects
 		return t.readAssetSchemas(stub, args)
+	} else if function == "readAssetObjectModel" {
+		return t.readAssetObjectModel(stub, args)
+	} else if function == "readContractState" {
+		return t.readContractState(stub, args)
 	}
+
 	return nil, errors.New("Received unknown invocation: " + function)
 }
 
@@ -263,10 +265,41 @@ func (t *SimpleChaincode) readAsset(stub shim.ChaincodeStubInterface, args []str
 	return assetBytes, nil
 }
 
-//********************readContract********************/
+//********************readTradeState********************/
 
-func (t *SimpleChaincode) readContract(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+func (t *SimpleChaincode) readTradeState(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	var err error
+	var state TradeState
+
+	if len(args) != 0 {
+		err = errors.New("Too many arguments. Expecting none.")
+		return nil, err
+	}
+
+	// Get the state from the ledger
+	tradeBytes, err := stub.GetState(TRADESTATEKEY)
+	if err != nil || len(tradeBytes) == 0 {
+		err = errors.New("Unable to get trade state from ledger")
+		return nil, err
+	}
+	err = json.Unmarshal(tradeBytes, &state)
+	if err != nil {
+		err = errors.New("Unable to unmarshal state data obtained from ledger")
+		return nil, err
+	}
+	return tradeBytes, nil
+}
+
+//********************readContractState********************/
+
+func (t *SimpleChaincode) readContractState(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	var err error
 	var state ContractState
+
+	if len(args) != 0 {
+		err = errors.New("Too many arguments. Expecting none.")
+		return nil, err
+	}
 
 	// Get the state from the ledger
 	contractStateBytes, err := stub.GetState(CONTRACTSTATEKEY)
@@ -282,31 +315,10 @@ func (t *SimpleChaincode) readContract(stub shim.ChaincodeStubInterface, args []
 	return contractStateBytes, nil
 }
 
-//********************readAsset********************/
+//*************readContractObjectModel*****************/
 
-func (t *SimpleChaincode) readTrade(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
-	var tradeID string // asset ID
-	var err error
-	var state TradeState
-
-	// Get the state from the ledger
-	tradeBytes, err := stub.GetState(tradeID)
-	if err != nil || len(tradeBytes) == 0 {
-		err = errors.New("Unable to get trade state from ledger")
-		return nil, err
-	}
-	err = json.Unmarshal(tradeBytes, &state)
-	if err != nil {
-		err = errors.New("Unable to unmarshal state data obtained from ledger")
-		return nil, err
-	}
-	return tradeBytes, nil
-}
-
-//*************readAssetObjectModel*****************/
-
-func (t *SimpleChaincode) readAssetObjectModel(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
-	var state AssetState = AssetState{}
+func (t *SimpleChaincode) readContractObjectModel(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	var contractState = ContractState{MYVERSION, DEFAULTSTATUS}
 
 	// Marshal and return
 	stateJSON, err := json.Marshal(state)
@@ -423,7 +435,7 @@ func (t *SimpleChaincode) mergePartialState(oldState AssetState, newState AssetS
 
 	old := reflect.ValueOf(&oldState).Elem()
 	new := reflect.ValueOf(&newState).Elem()
-	date :=
+
 	for i := 0; i < old.NumField(); i++ {
 		oldOne := old.Field(i)
 		newOne := new.Field(i)
@@ -433,10 +445,4 @@ func (t *SimpleChaincode) mergePartialState(oldState AssetState, newState AssetS
 	}
 
 	return oldState, nil
-}
-
-/*********************************  internal: getCurrentDate ****************************/
-func (e *Event) setDate() {
-	t := time.Now()
-	e.date = t.Format(time.RFC822)
 }
