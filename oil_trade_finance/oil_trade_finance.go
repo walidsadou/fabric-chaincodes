@@ -70,15 +70,15 @@ type Geolocation struct {
 type AssetState struct {
 	AssetID        *string      `json:"assetID,omitempty"`        // all assets must have an ID, primary key of contract
 	Location       *Geolocation `json:"location,omitempty"`       // current asset location
-	maxTemperature *float64     `json:"maxTemperature,omitempty"` // asset temp
-	maxHumidity    *float64     `json:"maxHumidity,omitempty"`    // asset humidity
+	MaxTemperature *float64     `json:"maxTemperature,omitempty"` // asset temp
+	MaxHumidity    *float64     `json:"maxHumidity,omitempty"`    // asset humidity
 	Carrier        *string      `json:"carrier,omitempty"`        // the name of the carrier
 	//Event          *Event       `json:"event,omitempty"`
 }
 
 type Event struct {
-	name *string `json:"name,omitempty"` // name of the Watson IoT event received
-	date *string `json:"date,omitempty"` // date of reception
+	Name *string `json:"name,omitempty"` // name of the Watson IoT event received
+	Date *string `json:"date,omitempty"` // date of reception
 }
 
 type TradeState struct {
@@ -457,3 +457,272 @@ func (t *SimpleChaincode) mergePartialState(oldState AssetState, newState AssetS
 
 	return oldState, nil
 }
+// --------------------------------ALERTS-----------------------------------------
+
+
+var AlertsName = map[int]string{
+	0: "OVERTEMP",
+	1: "overhum",
+}
+
+var AlertsValue = map[string]int32{
+	"OVERTEMP": 0,
+	"overhum": 1,
+}
+
+
+func (x Alerts) String() string {
+	return AlertsName[int(x)]
+}
+
+
+type AlertNameArray []string
+
+type Alerts int32
+
+const (
+    // AlertsOVERTEMP the over temperature alert 
+ 	AlertsOVERTEMP Alerts = 0
+    // AlertsSIZE is to be maintained always as 1 greater than the last alert, giving a size  
+	AlertsOVERHUM        Alerts = 1
+
+	AlertsSIZE.  Alerts = 2
+)
+
+type AlertArrayInternal [AlertsSIZE]bool
+
+var NOALERTSACTIVEINTERNAL = AlertArrayInternal{}
+
+var NOALERTSACTIVE = AlertNameArray{}
+
+type AlertStatus struct {
+    Active  AlertNameArray  `json:"active"`
+    Raised  AlertNameArray  `json:"raised"`
+    Cleared AlertNameArray  `json:"cleared"`
+}
+type AlertStatusInternal struct {
+    Active  AlertArrayInternal  
+    Raised  AlertArrayInternal  
+    Cleared AlertArrayInternal  
+}
+
+func (a *AlertStatus) asAlertStatusInternal() (AlertStatusInternal) {
+    var aOut = AlertStatusInternal{}
+    for i := range a.Active {
+        aOut.Active[AlertsValue[a.Active[i]]] = true
+    }
+    for i := range a.Raised {
+        aOut.Raised[AlertsValue[a.Raised[i]]] = true
+    }
+    for i := range a.Cleared {
+        aOut.Cleared[AlertsValue[a.Cleared[i]]] = true
+    }
+    return aOut
+}
+
+func (a *AlertStatusInternal) asAlertStatus() (AlertStatus) {
+    var aOut = newAlertStatus()
+    for i := range a.Active {
+        if a.Active[i] {
+            aOut.Active = append(aOut.Active, AlertsName[i])
+        }
+    }
+    for i := range a.Raised {
+        if a.Raised[i] {
+            aOut.Raised = append(aOut.Raised, AlertsName[i])
+        }
+    }
+    for i := range a.Cleared {
+        if a.Cleared[i] {
+            aOut.Cleared = append(aOut.Cleared, AlertsName[i])
+        }
+    }
+    return aOut
+}
+
+func (a *AlertStatusInternal) clearRaisedAndClearedStatus () {
+    for i := range a.Active {
+        if a.Active[i] {
+            a.Raised[i] = false
+        } else {
+            a.Cleared[i] = false
+        }
+    }
+}
+func (a *AlertStatusInternal) raiseAlert (alert Alerts) {
+    if a.Active[alert] {
+        // already raised
+        // this is tricky, should not say this event raised an
+        // active alarm, as it makes it much more difficult to track
+        // the exact moments of transition
+        a.Active[alert] = true
+        a.Raised[alert] = false
+        a.Cleared[alert] = false
+    } else {
+        // raising it
+        a.Active[alert] = true
+        a.Raised[alert] = true
+        a.Cleared[alert] = false
+    }
+}
+
+func (a *AlertStatusInternal) clearAlert (alert Alerts) {
+    if a.Active[alert] {
+        // clearing alert
+        a.Active[alert] = false
+        a.Raised[alert] = false
+        a.Cleared[alert] = true
+    } else {
+        // was not active
+        a.Active[alert] = false
+        a.Raised[alert] = false
+        // this is tricky, should not say this event cleared an
+        // inactive alarm, as it makes it much more difficult to track
+        //  the exact moments of transition
+        a.Cleared[alert] = false
+    }
+}
+
+func newAlertStatus() (AlertStatus) {
+    var a AlertStatus
+    a.Active = make([]string, 0, AlertsSIZE)
+    a.Raised = make([]string, 0, AlertsSIZE)
+    a.Cleared = make([]string, 0, AlertsSIZE)
+    return a
+}
+
+func (arr *AlertNameArray) copyFrom (s []interface{}) {
+    // a conversion like this must assert type at every level
+    for i := 0; i < len(s); i++ {
+        *arr = append(*arr, s[i].(string))
+    }
+}
+
+// NoAlertsActive returns true when no alerts are active in the asset's status at this time
+func (arr *AlertStatusInternal) NoAlertsActive() (bool) {
+    return (arr.Active == NOALERTSACTIVEINTERNAL)
+}
+
+// AllClear returns true when no alerts are active, raised or cleared in the asset's status at this time
+func (arr *AlertStatusInternal) AllClear() (bool) {
+    return  (arr.Active == NOALERTSACTIVEINTERNAL) &&
+            (arr.Raised == NOALERTSACTIVEINTERNAL) &&
+            (arr.Cleared == NOALERTSACTIVEINTERNAL) 
+}
+
+// NoAlertsActive returns true when no alerts are active in the asset's status at this time
+func (a *AlertStatus) NoAlertsActive() (bool) {
+    return len(a.Active) == 0
+}
+
+// AllClear returns true when no alerts are active, raised or cleared in the asset's status at this time
+func (a *AlertStatus) AllClear() (bool) {
+    return  len(a.Active) == 0 &&
+            len(a.Raised) == 0 &&
+            len(a.Cleared) == 0 
+}
+
+//------------------------------- rules ---------------------------------
+
+func (a *ArgsMap) executeRules(alerts *AlertStatus) (bool, error) {
+    log.Debugf("Executing rules input: %+v", *alerts)
+    // transform external to internal for easy alert status processing
+    var internal = (*alerts).asAlertStatusInternal()
+
+    internal.clearRaisedAndClearedStatus()
+
+    // ------ validation rules
+    // rule 1 -- test validation failure
+    err := internal.testValidationRule(a)
+    // return value is not used, return true, which means noncompliant
+    if err != nil {return true, err}
+    // rule 2 -- ???
+
+    // ------ alert rules
+    // rule 1 -- overtemp
+    err = internal.overTempRule(a)
+    if err != nil {return true, err}
+    // rule 2 -- overhum
+    err = internal.overHumRule(a)
+    if err != nil {return true, err}
+
+    // transform for external consumption
+    *alerts = internal.asAlertStatus()
+    log.Debugf("Executing rules output: %+v", *alerts)
+
+    // set compliance true means out of compliance
+    compliant, err := internal.calculateContractCompliance(a) 
+    if err != nil {return true, err} 
+    // returns true if anything at all is active (i.e. NOT compliant)
+    return !compliant, nil
+}
+
+func (alerts *AlertStatusInternal) testValidationRule (a *ArgsMap) error {
+    tbytes, found := getObject(*a, "testValidation")
+    if found {
+        t, found := tbytes.(bool)
+        if found {
+            if t {
+                err := errors.New("testValidation property found and is true") 
+                return err
+            }
+        }
+    }
+    return nil
+}
+
+
+func (alerts *AlertStatusInternal) overTempRule (a *ArgsMap) error {
+    const temperatureThreshold  float64 = 60 // (inclusive good value)
+
+    tbytes, found := getObject(*a, "maxTemperature")
+    if found {
+        t, found := tbytes.(float64)
+        if found {
+            if t > temperatureThreshold {
+                alerts.raiseAlert(AlertsOVERTEMP)
+                return nil
+            }
+        } else {
+            log.Warning("overTempRule: temperature not type JSON Number, alert status not changed")
+            // do nothing to the alerts status
+            return nil 
+        }
+    }
+    alerts.clearAlert(AlertsOVERTEMP)
+    return nil
+}
+
+func (alerts *AlertStatusInternal) overHumRule (a *ArgsMap) error {
+    const HumidityThreshold  float64 = 80 // (inclusive good value)
+
+    tbytes, found := getObject(*a, "maxHumidity")
+    if found {
+        t, found := tbytes.(float64)
+        if found {
+            if t > HumidityThreshold {
+                alerts.raiseAlert(AlertsOVERHUM)
+                return nil
+            }
+        } else {
+            log.Warning("overHumRule: humidity not type JSON Number, alert status not changed")
+            // do nothing to the alerts status
+            return nil 
+        }
+    }
+    alerts.clearAlert(AlertsOVERHUM)
+    return nil
+}
+
+func (alerts *AlertStatusInternal) calculateContractCompliance (a *ArgsMap) (bool, error) {
+    // a simplistic calculation for this particular contract, but has access
+    // to the entire state object and can thus have at it
+    // compliant is no alerts active
+    return alerts.NoAlertsActive(), nil
+    // NOTE: There could still a "cleared" alert, so don't go
+    //       deleting the alerts from the ledger just on this status.
+}
+
+   
+
+
