@@ -675,7 +675,7 @@ func (alerts *AlertStatusInternal) testValidationRule (a *ArgsMap) error {
 func (alerts *AlertStatusInternal) overTempRule (a *ArgsMap) error {
     const temperatureThreshold  float64 = 60 // (inclusive good value)
 
-    tbytes, found := getObject(*a, "maxTemperature")
+    tbytes, found := getObject(*a, "MaxTemperature")
     if found {
         t, found := tbytes.(float64)
         if found {
@@ -696,7 +696,7 @@ func (alerts *AlertStatusInternal) overTempRule (a *ArgsMap) error {
 func (alerts *AlertStatusInternal) overHumRule (a *ArgsMap) error {
     const HumidityThreshold  float64 = 80 // (inclusive good value)
 
-    tbytes, found := getObject(*a, "maxHumidity")
+    tbytes, found := getObject(*a, "MaxHumidity")
     if found {
         t, found := tbytes.(float64)
         if found {
